@@ -1,0 +1,72 @@
+{
+	"version": 0,
+	"dependencies": [
+		{
+			"importpath": "code.cloudfoundry.org/garden",
+			"repository": "https://github.com/cloudfoundry/garden",
+			"vcs": "git",
+			"revision": "053010d769e1ca70220ae9b56a373c86825e92cb",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "code.cloudfoundry.org/lager",
+			"repository": "https://github.com/cloudfoundry/lager",
+			"vcs": "git",
+			"revision": "6cfe365fb6bb84343f0034b4a53cd250d173b61f",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/bmizerany/pat",
+			"repository": "https://github.com/bmizerany/pat",
+			"vcs": "git",
+			"revision": "c068ca2f0aacee5ac3681d68e4d0a003b7d1fd2c",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/onsi/ginkgo",
+			"repository": "https://github.com/onsi/ginkgo",
+			"vcs": "git",
+			"revision": "bb93381d543b0e5725244abe752214a110791d01",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/onsi/gomega/format",
+			"repository": "https://github.com/onsi/gomega",
+			"vcs": "git",
+			"revision": "e85f63af4302dc0e4277c6008ecf803f1d80e4f0",
+			"branch": "master",
+			"path": "format",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/onsi/gomega/gbytes",
+			"repository": "https://github.com/onsi/gomega",
+			"vcs": "git",
+			"revision": "e85f63af4302dc0e4277c6008ecf803f1d80e4f0",
+			"branch": "master",
+			"path": "/gbytes",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/tedsuo/rata",
+			"repository": "https://github.com/tedsuo/rata",
+			"vcs": "git",
+			"revision": "0649c23705dfb45a9693b668c4fc1c0666f485d9",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "golang.org/x/sys/unix",
+			"repository": "https://go.googlesource.com/sys",
+			"vcs": "git",
+			"revision": "7a6e5648d140666db5d920909e082ca00a87ba2c",
+			"branch": "master",
+			"path": "/unix",
+			"notests": true
+		}
+	]
+}
