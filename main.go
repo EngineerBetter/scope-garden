@@ -18,6 +18,7 @@ var (
 	gardenNetwork string
 	gardenAddr    string
 	pluginsRoot   string
+	hostname      string
 )
 
 func init() {
@@ -41,17 +42,27 @@ func init() {
 		"/var/run/scope/plugins",
 		"root directory for scope plugin sockets",
 	)
+
+	flag.StringVar(
+		&hostname,
+		"hostname",
+		"",
+		"hostname as reported by scope",
+	)
 }
 
 func main() {
 	flag.Parse()
 
-	hostID, err := os.Hostname()
-	if err != nil {
-		log.Fatal(err)
+	if hostname == "" {
+		var err error
+		hostname, err = os.Hostname()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
-	log.Printf("Starting on %s...\n", hostID)
+	log.Printf("Starting on %s...\n", hostname)
 
 	socket := filepath.Join(pluginsRoot, "garden", "garden.sock")
 
@@ -66,7 +77,7 @@ func main() {
 
 	handleSignals()
 
-	plugin := garden.NewPlugin(hostID, gardenNetwork, gardenAddr)
+	plugin := garden.NewPlugin(hostname, gardenNetwork, gardenAddr)
 
 	http.HandleFunc("/report", plugin.Report)
 
@@ -88,7 +99,7 @@ func listen(socket string) (net.Listener, error) {
 		return nil, fmt.Errorf("error listening on %q: %v", socket, err)
 	}
 
-	log.Printf("Listening on: unix://%s\n", socket)
+	log.Printf("Listening on unix://%s\n", socket)
 	return listener, nil
 }
 

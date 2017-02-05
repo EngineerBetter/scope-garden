@@ -1,7 +1,7 @@
 package garden
 
 import (
-	"log"
+	"fmt"
 
 	"code.cloudfoundry.org/garden"
 	gardenclient "code.cloudfoundry.org/garden/client"
@@ -9,24 +9,26 @@ import (
 
 type registry struct {
 	client gardenclient.Client
-	hostID string
 }
 
-func newRegistry(client gardenclient.Client, hostID string) *registry {
+func newRegistry(client gardenclient.Client) *registry {
 	return &registry{
 		client: client,
-		hostID: hostID,
 	}
 }
 
-func (r *registry) walkContainers(fn func(c container)) {
+func (r *registry) walkContainers(fn func(c garden.Container) error) error {
 	containers, err := r.client.Containers(garden.Properties{})
 	if err != nil {
-		log.Printf("error fetching containers: %v\n", err)
-		return
+		err := fmt.Errorf("error fetching containers: %v\n", err)
+		return err
 	}
 
 	for _, c := range containers {
-		fn(newContainer(c, r.hostID))
+		if err := fn(c); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
