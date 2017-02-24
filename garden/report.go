@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	DockerContainerHostname   = "docker_container_hostname"
 	ContainerID               = "garden_container_id"
 	ContainerPath             = "garden_container_path"
 	ContainerIP               = "garden_container_ip"
@@ -59,12 +60,13 @@ func (r *report) AddNode(c garden.Container) error {
 	}
 
 	n.Latest = map[string]latestSpec{
-		ContainerID:         latest(id),
-		ContainerPath:       latest(info.ContainerPath),
-		ContainerState:      latest(info.State),
-		ContainerIP:         latest(info.ContainerIP),
-		ContainerHostIP:     latest(info.HostIP),
-		ContainerExternalIP: latest(info.ExternalIP),
+		DockerContainerHostname: latest(r.hostname),
+		ContainerID:             latest(id),
+		ContainerPath:           latest(info.ContainerPath),
+		ContainerState:          latest(info.State),
+		ContainerIP:             latest(info.ContainerIP),
+		ContainerHostIP:         latest(info.HostIP),
+		ContainerExternalIP:     latest(info.ExternalIP),
 	}
 
 	for k, v := range info.Events {
