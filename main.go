@@ -10,15 +10,17 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/st3v/scope-garden/garden"
 )
 
 var (
-	gardenNetwork string
-	gardenAddr    string
-	pluginsRoot   string
-	hostname      string
+	gardenNetwork         string
+	gardenAddr            string
+	gardenRefreshInterval time.Duration
+	pluginsRoot           string
+	hostname              string
 )
 
 func init() {
@@ -34,6 +36,13 @@ func init() {
 		"gardenAddr",
 		"/tmp/garden.sock",
 		"network address for garden server",
+	)
+
+	flag.DurationVar(
+		&gardenRefreshInterval,
+		"gardenRefreshInterval",
+		3*time.Second,
+		"interval for fetch requests ro the garden server",
 	)
 
 	flag.StringVar(
@@ -77,7 +86,8 @@ func main() {
 
 	handleSignals()
 
-	plugin := garden.NewPlugin(hostname, gardenNetwork, gardenAddr)
+	plugin := garden.NewPlugin(hostname, gardenNetwork, gardenAddr, gardenRefreshInterval)
+	defer plugin.Close()
 
 	http.HandleFunc("/report", plugin.Report)
 
