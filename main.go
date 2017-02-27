@@ -32,63 +32,63 @@ var (
 func init() {
 	flag.StringVar(
 		&gardenNetwork,
-		"gardenNetwork",
+		"garden.network",
 		"unix",
 		"network mode for garden server (tcp, unix)",
 	)
 
 	flag.StringVar(
 		&gardenAddr,
-		"gardenAddr",
+		"garden.addr",
 		"/tmp/garden.sock",
 		"network address for garden server",
 	)
 
 	flag.DurationVar(
 		&gardenRefreshInterval,
-		"gardenRefreshInterval",
+		"garden.refresh-interval",
 		3*time.Second,
 		"interval to fetch for container updates from garden server",
 	)
 
 	flag.StringVar(
 		&cfAPI,
-		"cfApi",
+		"cf.api-url",
 		"",
 		"CF API endpoint to be used when looking up apps, optional",
 	)
 
 	flag.StringVar(
 		&cfClientID,
-		"cfClientId",
+		"cf.client-id",
 		"",
 		"client ID to be used when looking up apps in CF, optional",
 	)
 
 	flag.StringVar(
 		&cfClientSecret,
-		"cfClientSecret",
+		"cf.client-secret",
 		"",
 		"client secret to be used when looking up apps in CF, optional",
 	)
 
 	flag.BoolVar(
 		&cfSkipSSLValidation,
-		"cfSkipSSLValidation",
+		"cf.skip-ssl-verify",
 		false,
 		"skip SSL validation when looking up apps in CF, optional",
 	)
 
 	flag.DurationVar(
 		&cfRefreshInterval,
-		"cfRefreshInterval",
+		"cf.refresh-interval",
 		3*time.Second,
 		"interval to fetch for app updates from CF",
 	)
 
 	flag.StringVar(
 		&pluginsRoot,
-		"pluginsRoot",
+		"plugins-root",
 		"/var/run/scope/plugins",
 		"root directory for scope plugin sockets",
 	)
