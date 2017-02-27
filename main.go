@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/st3v/scope-garden/cf"
 	"github.com/st3v/scope-garden/garden"
 )
 
@@ -21,6 +22,11 @@ var (
 	gardenRefreshInterval time.Duration
 	pluginsRoot           string
 	hostname              string
+	cfAPI                 string
+	cfClientID            string
+	cfClientSecret        string
+	cfSkipSSLValidation   bool
+	cfRefreshInterval     time.Duration
 )
 
 func init() {
@@ -42,7 +48,42 @@ func init() {
 		&gardenRefreshInterval,
 		"gardenRefreshInterval",
 		3*time.Second,
-		"interval for fetch requests ro the garden server",
+		"interval to fetch for container updates from garden server",
+	)
+
+	flag.StringVar(
+		&cfAPI,
+		"cfApi",
+		"",
+		"CF API endpoint to be used when looking up apps, optional",
+	)
+
+	flag.StringVar(
+		&cfClientID,
+		"cfClientId",
+		"",
+		"client ID to be used when looking up apps in CF, optional",
+	)
+
+	flag.StringVar(
+		&cfClientSecret,
+		"cfClientSecret",
+		"",
+		"client secret to be used when looking up apps in CF, optional",
+	)
+
+	flag.BoolVar(
+		&cfSkipSSLValidation,
+		"cfSkipSSLValidation",
+		false,
+		"skip SSL validation when looking up apps in CF, optional",
+	)
+
+	flag.DurationVar(
+		&cfRefreshInterval,
+		"cfRefreshInterval",
+		3*time.Second,
+		"interval to fetch for app updates from CF",
 	)
 
 	flag.StringVar(
@@ -86,7 +127,10 @@ func main() {
 
 	handleSignals()
 
-	plugin := garden.NewPlugin(hostname, gardenNetwork, gardenAddr, gardenRefreshInterval)
+	appDir := cf.NewAppDirectory(cfAPI, cfClientID, cfClientSecret, cfSkipSSLValidation, cfRefreshInterval)
+	defer appDir.Close()
+
+	plugin := garden.NewPlugin(hostname, gardenNetwork, gardenAddr, gardenRefreshInterval, appDir.AppName)
 	defer plugin.Close()
 
 	http.HandleFunc("/report", plugin.Report)

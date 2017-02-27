@@ -33,13 +33,14 @@ const (
 	ContainerSpaceGUID = "cf_space_guid"
 )
 
-func newReport(hostname string) report {
+func newReport(hostname string, appNameLookup lookupFn) report {
 	return report{
 		ID:             fmt.Sprintf("%d", rand.Int63()),
 		Plugins:        []pluginSpec{pluginInfo},
 		Container:      newContainer(),
 		ContainerImage: newContainerImage(),
 		hostname:       hostname,
+		lookupAppName:  appNameLookup,
 	}
 }
 
@@ -103,18 +104,28 @@ func (r *report) AddNode(c garden.Container) error {
 	}
 
 	if appGUID, err := c.Property("network.app_id"); err == nil {
-		n.Latest["docker_container_name"] = latest(id)
-		n.Latest["docker_image_id"] = latest(appGUID)
+		appName, found := r.lookupAppName(appGUID)
+		if !found {
+			appName = appGUID
+		}
+
+		containerName := id
+		if appName != appGUID {
+			containerName = fmt.Sprintf("%s/%s", appName, id[:5])
+		}
+
+		n.Latest["docker_container_name"] = latest(containerName)
+		n.Latest["docker_image_id"] = latest(appName)
 		n.Latest[ContainerAppGUID] = latest(appGUID)
 
 		img := nodeSpec{
-			ID:       fmt.Sprintf("%s;<container_image>", appGUID),
+			ID:       fmt.Sprintf("%s;<container_image>", appName),
 			Topology: "container_image",
 			Parents:  map[string][]string{"host": []string{host}},
 			Latest: map[string]latestSpec{
 				ContainerAppGUID:    latest(appGUID),
-				"docker_image_id":   latest(appGUID),
-				"docker_image_name": latest(appGUID),
+				"docker_image_id":   latest(appName),
+				"docker_image_name": latest(appName),
 				"host_node_id":      latest(host),
 			},
 		}
@@ -262,6 +273,7 @@ type report struct {
 	Container      containerSpec      `json:"Container"`
 	ContainerImage containerImageSpec `json:"ContainerImage"`
 	hostname       string
+	lookupAppName  lookupFn
 }
 
 var (

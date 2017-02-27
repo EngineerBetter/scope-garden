@@ -11,6 +11,8 @@ import (
 	gardenconnection "code.cloudfoundry.org/garden/client/connection"
 )
 
+type lookupFn func(string) (string, bool)
+
 type plugin struct {
 	lock     sync.RWMutex
 	hostname string
@@ -19,7 +21,7 @@ type plugin struct {
 	report   report
 }
 
-func NewPlugin(hostname, gardenNetwork, gardenAddr string, fetchInterval time.Duration) *plugin {
+func NewPlugin(hostname, gardenNetwork, gardenAddr string, fetchInterval time.Duration, appNameLookup lookupFn) *plugin {
 	client := gardenclient.New(
 		gardenconnection.New(gardenNetwork, gardenAddr),
 	)
@@ -27,11 +29,11 @@ func NewPlugin(hostname, gardenNetwork, gardenAddr string, fetchInterval time.Du
 	p := &plugin{
 		hostname: hostname,
 		registry: newRegistry(client),
-		report:   newReport(hostname),
+		report:   newReport(hostname, appNameLookup),
 		done:     make(chan struct{}),
 	}
 
-	p.refreshReport(fetchInterval)
+	p.refreshReport(fetchInterval, appNameLookup)
 
 	return p
 }
@@ -40,12 +42,12 @@ func (p *plugin) Close() {
 	close(p.done)
 }
 
-func (p *plugin) refreshReport(interval time.Duration) {
+func (p *plugin) refreshReport(interval time.Duration, appNameLookup lookupFn) {
 	go func() {
 		for {
 			select {
 			case <-time.After(interval):
-				r := newReport(p.hostname)
+				r := newReport(p.hostname, appNameLookup)
 
 				if err := p.registry.walkContainers(r.AddNode); err != nil {
 					log.Println(err)
