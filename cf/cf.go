@@ -15,14 +15,16 @@ type directory struct {
 	done   chan struct{}
 }
 
-func NewAppDirectory(addr, clientID, clientSecret string, skipSSLValidation bool, fetchInterval time.Duration) *directory {
-	if addr == "" || clientID == "" {
-		log.Println("Cloud Foundry API URL or client ID not set, skipping App lookup")
+func NewAppDirectory(addr, username, password, clientID, clientSecret string, skipSSLValidation bool, fetchInterval time.Duration) *directory {
+	if addr == "" {
+		log.Println("Cloud Foundry API URL not set, skipping app lookup")
 		return &directory{}
 	}
 
 	c, err := cfclient.NewClient(&cfclient.Config{
 		ApiAddress:        addr,
+		Username:          username,
+		Password:          password,
 		ClientID:          clientID,
 		ClientSecret:      clientSecret,
 		SkipSslValidation: skipSSLValidation,

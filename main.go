@@ -23,6 +23,8 @@ var (
 	pluginsRoot           string
 	hostname              string
 	cfAPI                 string
+	cfUsername            string
+	cfPassword            string
 	cfClientID            string
 	cfClientSecret        string
 	cfSkipSSLValidation   bool
@@ -56,6 +58,20 @@ func init() {
 		"cf.api-url",
 		"",
 		"CF API endpoint to be used when looking up apps, optional",
+	)
+
+	flag.StringVar(
+		&cfUsername,
+		"cf.username",
+		"",
+		"username to be used when looking up apps in CF, optional",
+	)
+
+	flag.StringVar(
+		&cfPassword,
+		"cf.password",
+		"",
+		"password to be used when looking up apps in CF, optional",
 	)
 
 	flag.StringVar(
@@ -120,6 +136,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	defer func() {
 		listener.Close()
 		os.RemoveAll(filepath.Dir(socket))
@@ -127,7 +144,7 @@ func main() {
 
 	handleSignals()
 
-	appDir := cf.NewAppDirectory(cfAPI, cfClientID, cfClientSecret, cfSkipSSLValidation, cfRefreshInterval)
+	appDir := cf.NewAppDirectory(cfAPI, cfUsername, cfPassword, cfClientID, cfClientSecret, cfSkipSSLValidation, cfRefreshInterval)
 	defer appDir.Close()
 
 	plugin := garden.NewPlugin(hostname, gardenNetwork, gardenAddr, gardenRefreshInterval, appDir.AppName)
