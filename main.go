@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -35,85 +36,85 @@ func init() {
 	flag.StringVar(
 		&gardenNetwork,
 		"garden.network",
-		"unix",
-		"network mode for garden server (tcp, unix)",
+		getEnvString("GARDEN_NETWORK", "unix"),
+		"network mode for garden server (tcp, unix) [GARDEN_NETWORK]",
 	)
 
 	flag.StringVar(
 		&gardenAddr,
 		"garden.addr",
-		"/tmp/garden.sock",
-		"network address for garden server",
+		getEnvString("GARDEN_ADDR", "/tmp/garden.sock"),
+		"network address for garden server [GARDEN_ADDR]",
 	)
 
 	flag.DurationVar(
 		&gardenRefreshInterval,
 		"garden.refresh-interval",
-		3*time.Second,
-		"interval to fetch for container updates from garden server",
+		getEnvDuration("GARDEN_REFRESH_INTERVAL", 3*time.Second),
+		"interval to fetch for container updates from garden server [GARDEN_REFRESH_INTERVAL]",
 	)
 
 	flag.StringVar(
 		&cfAPI,
 		"cf.api-url",
-		"",
-		"CF API endpoint to be used when looking up apps, optional",
+		getEnvString("CF_API_URL", ""),
+		"CF API endpoint to be used when looking up apps [CF_API_URL]",
 	)
 
 	flag.StringVar(
 		&cfUsername,
 		"cf.username",
-		"",
-		"username to be used when looking up apps in CF, optional",
+		getEnvString("CF_USERNAME", ""),
+		"username to be used when looking up apps in CF [CF_USERNAME]",
 	)
 
 	flag.StringVar(
 		&cfPassword,
 		"cf.password",
-		"",
-		"password to be used when looking up apps in CF, optional",
+		getEnvString("CF_PASSWORD", ""),
+		"password to be used when looking up apps in CF [CF_PASSWORD]",
 	)
 
 	flag.StringVar(
 		&cfClientID,
 		"cf.client-id",
-		"",
-		"client ID to be used when looking up apps in CF, optional",
+		getEnvString("CF_CLIENT_ID", ""),
+		"client ID to be used when looking up apps in CF [CF_CLIENT_ID]",
 	)
 
 	flag.StringVar(
 		&cfClientSecret,
 		"cf.client-secret",
-		"",
-		"client secret to be used when looking up apps in CF, optional",
+		getEnvString("CF_CLIENT_SECRET", ""),
+		"client secret to be used when looking up apps in CF [CF_CLIENT_SECRET]",
 	)
 
 	flag.BoolVar(
 		&cfSkipSSLValidation,
 		"cf.skip-ssl-verify",
-		false,
-		"skip SSL validation when looking up apps in CF, optional",
+		getEnvBool("CF_SKIP_SSL_VERIFY", false),
+		"skip SSL validation when looking up apps in CF [CF_SKIP_SSL_VERIFY]",
 	)
 
 	flag.DurationVar(
 		&cfRefreshInterval,
 		"cf.refresh-interval",
-		3*time.Second,
-		"interval to fetch for app updates from CF",
+		getEnvDuration("CF_REFRESH_INTERVAL", 3*time.Second),
+		"interval to fetch for app updates from CF [CF_REFRESH_INTERVAL]",
 	)
 
 	flag.StringVar(
 		&pluginsRoot,
 		"plugins-root",
-		"/var/run/scope/plugins",
-		"root directory for scope plugin sockets",
+		getEnvString("PLUGINS_ROOT", "/var/run/scope/plugins"),
+		"root directory for scope plugin sockets [PLUGINS_ROOT]",
 	)
 
 	flag.StringVar(
 		&hostname,
 		"hostname",
-		"",
-		"hostname as reported by scope",
+		getEnvString("HOSTNAME", ""),
+		"hostname as reported by scope [HOSTNAME]",
 	)
 }
 
@@ -144,10 +145,24 @@ func main() {
 
 	handleSignals()
 
-	appDir := cf.NewAppDirectory(cfAPI, cfUsername, cfPassword, cfClientID, cfClientSecret, cfSkipSSLValidation, cfRefreshInterval)
+	appDir := cf.NewAppDirectory(
+		cfAPI,
+		cfUsername,
+		cfPassword,
+		cfClientID,
+		cfClientSecret,
+		cfSkipSSLValidation,
+		cfRefreshInterval,
+	)
 	defer appDir.Close()
 
-	plugin := garden.NewPlugin(hostname, gardenNetwork, gardenAddr, gardenRefreshInterval, appDir.AppName)
+	plugin := garden.NewPlugin(
+		hostname,
+		gardenNetwork,
+		gardenAddr,
+		gardenRefreshInterval,
+		appDir.AppName,
+	)
 	defer plugin.Close()
 
 	http.HandleFunc("/report", plugin.Report)
@@ -181,4 +196,41 @@ func handleSignals() {
 		<-interrupt
 		os.Exit(0)
 	}()
+}
+
+func getEnvString(key, def string) string {
+	v := os.Getenv(key)
+	if v == "" {
+		return def
+	}
+
+	return v
+}
+
+func getEnvDuration(key string, def time.Duration) time.Duration {
+	v := os.Getenv(key)
+	if v == "" {
+		return def
+	}
+
+	d, err := time.ParseDuration(v)
+	if err != nil {
+		return def
+	}
+
+	return d
+}
+
+func getEnvBool(key string, def bool) bool {
+	v := os.Getenv(key)
+	if v == "" {
+		return def
+	}
+
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return def
+	}
+
+	return b
 }
