@@ -143,6 +143,18 @@ func (r *report) AddNode(c garden.Container) error {
 		r.ContainerImage.Nodes[img.ID] = img
 
 		n.Parents["container_image"] = []string{img.ID}
+
+		containerPorts := make([]string, 0, len(info.MappedPorts))
+		for _, mapping := range info.MappedPorts {
+			containerPorts = append(containerPorts, fmt.Sprintf("%d", mapping.ContainerPort))
+		}
+
+		n.Sets = map[string][]string{
+			"docker_container_networks":        []string{"container-network"},
+			"docker_container_ips_with_scopes": []string{fmt.Sprintf("%s;%s", appName, info.ContainerIP)},
+			"docker_container_ips":             []string{info.ContainerIP},
+			"docker_container_ports":           containerPorts,
+		}
 	}
 
 	r.Container.Nodes[n.ID] = n
@@ -196,6 +208,7 @@ func metric(value float64) metricSpec {
 type nodeSpec struct {
 	ID       string                `json:"id"`
 	Topology string                `json:"topology,omitempty"`
+	Sets     map[string][]string   `json:"sets,omitempty"`
 	Latest   map[string]latestSpec `json:"latest,omitempty"`
 	Metrics  map[string]metricSpec `json:"metrics,omitempty"`
 	Parents  map[string][]string   `json:"parents,omitempty"`
