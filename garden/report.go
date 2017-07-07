@@ -10,6 +10,7 @@ import (
 
 const (
 	DockerContainerHostname   = "docker_container_hostname"
+	ControlProbeID            = "control_probe_id"
 	ContainerID               = "garden_container_id"
 	ContainerPath             = "garden_container_path"
 	ContainerIP               = "garden_container_ip"
@@ -62,12 +63,18 @@ func (r *report) AddNode(c garden.Container) error {
 
 	n.Latest = map[string]latestSpec{
 		DockerContainerHostname: latest(r.hostname),
+		ControlProbeID:          latest(id),
 		ContainerID:             latest(id),
 		ContainerPath:           latest(info.ContainerPath),
 		ContainerState:          latest(info.State),
 		ContainerIP:             latest(info.ContainerIP),
 		ContainerHostIP:         latest(info.HostIP),
 		ContainerExternalIP:     latest(info.ExternalIP),
+	}
+
+	n.LatestControls = map[string]latestControlSpec{}
+	for _, c := range containerControls {
+		n.LatestControls[c.ID] = latestControl(false)
 	}
 
 	for k, v := range info.Events {
@@ -168,6 +175,7 @@ func newContainer() containerSpec {
 		MetricTemplates:   containerMetricTemplates,
 		TableTemplates:    containerTableTemplates,
 		Nodes:             map[string]nodeSpec{},
+		Controls:          containerControls,
 	}
 }
 
@@ -175,6 +183,13 @@ func latest(v string) latestSpec {
 	return latestSpec{
 		Timestamp: time.Now(),
 		Value:     v,
+	}
+}
+
+func latestControl(dead bool) latestControlSpec {
+	return latestControlSpec{
+		Timestamp: time.Now(),
+		Value:     latestControlValueSpec{Dead: dead},
 	}
 }
 
@@ -194,16 +209,26 @@ func metric(value float64) metricSpec {
 }
 
 type nodeSpec struct {
-	ID       string                `json:"id"`
-	Topology string                `json:"topology,omitempty"`
-	Latest   map[string]latestSpec `json:"latest,omitempty"`
-	Metrics  map[string]metricSpec `json:"metrics,omitempty"`
-	Parents  map[string][]string   `json:"parents,omitempty"`
+	ID             string                       `json:"id"`
+	Topology       string                       `json:"topology,omitempty"`
+	Latest         map[string]latestSpec        `json:"latest,omitempty"`
+	LatestControls map[string]latestControlSpec `json:"latestControls,omitempty"`
+	Metrics        map[string]metricSpec        `json:"metrics,omitempty"`
+	Parents        map[string][]string          `json:"parents,omitempty"`
 }
 
 type latestSpec struct {
 	Timestamp time.Time `json:"timestamp"`
 	Value     string    `json:"value"`
+}
+
+type latestControlSpec struct {
+	Timestamp time.Time              `json:"timestamp"`
+	Value     latestControlValueSpec `json:"value"`
+}
+
+type latestControlValueSpec struct {
+	Dead bool `json:"dead"`
 }
 
 type metricSpec struct {
@@ -247,7 +272,15 @@ type containerSpec struct {
 	MetricTemplates   map[string]metricTemplateSpec   `json:"metric_templates"`
 	TableTemplates    map[string]tableTemplateSpec    `json:"table_templates"`
 	Nodes             map[string]nodeSpec             `json:"nodes"`
+	Controls          map[string]controlSpec          `json:"controls"`
 	Shape             string                          `json:"shape"`
+}
+
+type controlSpec struct {
+	ID    string `json:"id"`
+	Human string `json:"human"`
+	Icon  string `json:"icon"`
+	Rank  int    `json:"rank"`
 }
 
 type containerImageSpec struct {
@@ -281,8 +314,17 @@ var (
 		ID:          "garden",
 		Label:       "garden",
 		Description: "Reports on Garden containers running on the host",
-		Interfaces:  []string{"reporter"},
+		Interfaces:  []string{"reporter", "controller"},
 		APIVersion:  "1",
+	}
+
+	containerControls = map[string]controlSpec{
+		"docker_exec_container": {
+			ID:    "docker_exec_container",
+			Human: "Exec shell in container",
+			Icon:  "fa-terminal",
+			Rank:  0,
+		},
 	}
 
 	containerMetadataTemplates = map[string]metadataTemplateSpec{
