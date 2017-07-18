@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	DockerContainerHostname   = "docker_container_hostname"
+	CFContainerNetwork = "cf-container-network"
+
 	ContainerID               = "garden_container_id"
 	ContainerPath             = "garden_container_path"
 	ContainerIP               = "garden_container_ip"
@@ -21,6 +22,11 @@ const (
 	ContainerPropertiesPrefix = "garden_container_properties_"
 	ContainerPortMapPrefix    = "garden_container_portmap_"
 	ContainerCFPrefix         = "cf_"
+
+	DockerContainerHostname  = "docker_container_hostname"
+	DockerContainerIPsScopes = "docker_container_ips_with_scopes"
+	DockerContainerIPs       = "docker_container_ips"
+	DockerContainerNetworks  = "docker_container_networks"
 
 	MemoryUsage = "garden_memory_usage"
 	DiskUsage   = "garden_disk_usage"
@@ -88,6 +94,12 @@ func (r *report) AddNode(c garden.Container) error {
 	for _, mapping := range info.MappedPorts {
 		key := fmt.Sprintf("%s%d", ContainerPortMapPrefix, mapping.HostPort)
 		n.Latest[key] = latest(fmt.Sprintf("%d", mapping.ContainerPort))
+	}
+
+	n.Sets = map[string][]string{
+		DockerContainerIPsScopes: {fmt.Sprintf(";%s", info.ContainerIP)},
+		DockerContainerIPs:       {info.ContainerIP},
+		DockerContainerNetworks:  {CFContainerNetwork},
 	}
 
 	metrics, err := c.Metrics()
@@ -198,6 +210,7 @@ type nodeSpec struct {
 	Topology string                `json:"topology,omitempty"`
 	Latest   map[string]latestSpec `json:"latest,omitempty"`
 	Metrics  map[string]metricSpec `json:"metrics,omitempty"`
+	Sets     map[string][]string   `json:"sets,omitempty"`
 	Parents  map[string][]string   `json:"parents,omitempty"`
 }
 
