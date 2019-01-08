@@ -21,7 +21,6 @@ const (
 	ContainerPIDsPrefix       = "garden_container_pids_"
 	ContainerPropertiesPrefix = "garden_container_properties_"
 	ContainerPortMapPrefix    = "garden_container_portmap_"
-	ContainerCFPrefix         = "cf_"
 
 	DockerContainerHostname  = "docker_container_hostname"
 	DockerContainerIPsScopes = "docker_container_ips_with_scopes"
@@ -33,10 +32,6 @@ const (
 	CPUUsage    = "garden_cpu_total_usage"
 	NetworkRx   = "garden_network_rx"
 	NetworkTx   = "garden_network_tx"
-
-	ContainerAppGUID   = "cf_app_guid"
-	ContainerOrgGUID   = "cf_org_guid"
-	ContainerSpaceGUID = "cf_space_guid"
 )
 
 func newReport(hostname string, appNameLookup lookupFn) report {
@@ -128,28 +123,15 @@ func (r *report) AddNode(c garden.Container) error {
 
 		n.Latest["docker_container_name"] = latest(containerName)
 		n.Latest["docker_image_id"] = latest(appName)
-		n.Latest[ContainerAppGUID] = latest(appGUID)
 
 		img := nodeSpec{
 			ID:       fmt.Sprintf("%s;<container_image>", appName),
 			Topology: "container_image",
 			Parents:  map[string][]string{"host": []string{host}},
 			Latest: map[string]latestSpec{
-				ContainerAppGUID:    latest(appGUID),
-				"docker_image_id":   latest(appName),
 				"docker_image_name": latest(appName),
 				"host_node_id":      latest(host),
 			},
-		}
-
-		if orgGUID, err := c.Property("network.org_id"); err == nil {
-			n.Latest[ContainerOrgGUID] = latest(orgGUID)
-			img.Latest[ContainerOrgGUID] = latest(orgGUID)
-		}
-
-		if spaceGUID, err := c.Property("network.space_id"); err == nil {
-			n.Latest[ContainerSpaceGUID] = latest(spaceGUID)
-			img.Latest[ContainerSpaceGUID] = latest(spaceGUID)
 		}
 
 		r.ContainerImage.Nodes[img.ID] = img
@@ -305,9 +287,6 @@ var (
 		ContainerIP:         {ID: ContainerIP, Label: "Container IP", From: "latest", Priority: 4},
 		ContainerHostIP:     {ID: ContainerHostIP, Label: "Host IP", From: "latest", Priority: 5},
 		ContainerExternalIP: {ID: ContainerExternalIP, Label: "External IP", From: "latest", Priority: 6},
-		// ContainerAppGUID:    {ID: ContainerAppGUID, Label: "CF App GUID", From: "latest", Priority: 7},
-		// ContainerOrgGUID:    {ID: ContainerOrgGUID, Label: "CF Org GUID", From: "latest", Priority: 8},
-		// ContainerSpaceGUID:  {ID: ContainerSpaceGUID, Label: "CF Space GUID", From: "latest", Priority: 9},
 	}
 
 	containerMetricTemplates = map[string]metricTemplateSpec{
@@ -323,16 +302,9 @@ var (
 		ContainerPIDsPrefix:       {ID: ContainerPIDsPrefix, Label: "Process IDs", Prefix: ContainerPIDsPrefix},
 		ContainerPropertiesPrefix: {ID: ContainerPropertiesPrefix, Label: "Properties", Prefix: ContainerPropertiesPrefix},
 		ContainerPortMapPrefix:    {ID: ContainerPortMapPrefix, Label: "Port Mapping", Prefix: ContainerPortMapPrefix},
-		ContainerCFPrefix:         {ID: ContainerCFPrefix, Label: "Cloud Foundry", Prefix: ContainerCFPrefix},
 	}
 
-	containerImageTableTemplates = map[string]tableTemplateSpec{
-		ContainerCFPrefix: {ID: ContainerCFPrefix, Label: "Cloud Foundry", Prefix: ContainerCFPrefix},
-	}
+	containerImageTableTemplates = map[string]tableTemplateSpec{}
 
-	containerImageMetadataTemplates = map[string]metadataTemplateSpec{
-	// ContainerAppGUID:   {ID: ContainerAppGUID, Label: "CF App GUID", Priority: 1, From: "latest"},
-	// ContainerOrgGUID:   {ID: ContainerOrgGUID, Label: "CF Org GUID", Priority: 2, From: "latest"},
-	// ContainerSpaceGUID: {ID: ContainerSpaceGUID, Label: "CF Space GUID", Priority: 3, From: "latest"},
-	}
+	containerImageMetadataTemplates = map[string]metadataTemplateSpec{}
 )

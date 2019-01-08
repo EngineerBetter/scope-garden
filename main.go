@@ -23,13 +23,6 @@ var (
 	gardenRefreshInterval time.Duration
 	pluginsRoot           string
 	hostname              string
-	cfAPI                 string
-	cfUsername            string
-	cfPassword            string
-	cfClientID            string
-	cfClientSecret        string
-	cfSkipSSLValidation   bool
-	cfRefreshInterval     time.Duration
 )
 
 func init() {
@@ -52,55 +45,6 @@ func init() {
 		"garden.refresh-interval",
 		getEnvDuration("GARDEN_REFRESH_INTERVAL", 3*time.Second),
 		"interval to fetch for container updates from garden server [GARDEN_REFRESH_INTERVAL]",
-	)
-
-	flag.StringVar(
-		&cfAPI,
-		"cf.api-url",
-		getEnvString("CF_API_URL", ""),
-		"CF API endpoint to be used when looking up apps [CF_API_URL]",
-	)
-
-	flag.StringVar(
-		&cfUsername,
-		"cf.username",
-		getEnvString("CF_USERNAME", ""),
-		"username to be used when looking up apps in CF [CF_USERNAME]",
-	)
-
-	flag.StringVar(
-		&cfPassword,
-		"cf.password",
-		getEnvString("CF_PASSWORD", ""),
-		"password to be used when looking up apps in CF [CF_PASSWORD]",
-	)
-
-	flag.StringVar(
-		&cfClientID,
-		"cf.client-id",
-		getEnvString("CF_CLIENT_ID", ""),
-		"client ID to be used when looking up apps in CF [CF_CLIENT_ID]",
-	)
-
-	flag.StringVar(
-		&cfClientSecret,
-		"cf.client-secret",
-		getEnvString("CF_CLIENT_SECRET", ""),
-		"client secret to be used when looking up apps in CF [CF_CLIENT_SECRET]",
-	)
-
-	flag.BoolVar(
-		&cfSkipSSLValidation,
-		"cf.skip-ssl-verify",
-		getEnvBool("CF_SKIP_SSL_VERIFY", false),
-		"skip SSL validation when looking up apps in CF [CF_SKIP_SSL_VERIFY]",
-	)
-
-	flag.DurationVar(
-		&cfRefreshInterval,
-		"cf.refresh-interval",
-		getEnvDuration("CF_REFRESH_INTERVAL", 3*time.Second),
-		"interval to fetch for app updates from CF [CF_REFRESH_INTERVAL]",
 	)
 
 	flag.StringVar(
@@ -145,15 +89,7 @@ func main() {
 
 	handleSignals()
 
-	appDir := cf.NewAppDirectory(
-		cfAPI,
-		cfUsername,
-		cfPassword,
-		cfClientID,
-		cfClientSecret,
-		cfSkipSSLValidation,
-		cfRefreshInterval,
-	)
+	appDir := cf.NewAppDirectory()
 	defer appDir.Close()
 
 	plugin := garden.NewPlugin(
