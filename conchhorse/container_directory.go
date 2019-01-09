@@ -34,15 +34,15 @@ func (d *directory) Close() {
 	close(d.done)
 }
 
-func (d *directory) AppName(guid string) (string, bool) {
+func (d *directory) ConcourseContainer(guid string) (atc.Container, bool) {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 
 	if container, found := d.containers[guid]; found {
-		return container.StepName, true
+		return container, true
 	}
 
-	return "not-found", false
+	return atc.Container{}, false
 }
 
 func (d *directory) set(containers []atc.Container) {

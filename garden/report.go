@@ -17,11 +17,8 @@ const (
 	ContainerHostIP           = "garden_container_host_ip"
 	ContainerExternalIP       = "garden_container_external_ip"
 	ContainerState            = "garden_container_state"
-	ContainerEventsPrefix     = "garden_container_events_"
-	ContainerPIDsPrefix       = "garden_container_pids_"
 	ContainerPropertiesPrefix = "garden_container_properties_"
-	ContainerPortMapPrefix    = "garden_container_portmap_"
-	ContainerCFPrefix         = "cf_"
+	ContainerConcoursePrefix  = "concourse_"
 
 	DockerContainerHostname  = "docker_container_hostname"
 	DockerContainerIPsScopes = "docker_container_ips_with_scopes"
@@ -34,19 +31,17 @@ const (
 	NetworkRx   = "garden_network_rx"
 	NetworkTx   = "garden_network_tx"
 
-	ContainerAppGUID   = "cf_app_guid"
-	ContainerOrgGUID   = "cf_org_guid"
-	ContainerSpaceGUID = "cf_space_guid"
+	ContainerAppGUID = "cf_app_guid"
 )
 
 func newReport(hostname string, appNameLookup lookupFn) report {
 	return report{
-		ID:             fmt.Sprintf("%d", rand.Int63()),
-		Plugins:        []pluginSpec{pluginInfo},
-		Container:      newContainer(),
-		ContainerImage: newContainerImage(),
-		hostname:       hostname,
-		lookupAppName:  appNameLookup,
+		ID:                       fmt.Sprintf("%d", rand.Int63()),
+		Plugins:                  []pluginSpec{pluginInfo},
+		Container:                newContainer(),
+		ContainerImage:           newContainerImage(),
+		hostname:                 hostname,
+		lookupConcourseContainer: appNameLookup,
 	}
 }
 
@@ -76,24 +71,9 @@ func (r *report) AddNode(c garden.Container) error {
 		ContainerExternalIP:     latest(info.ExternalIP),
 	}
 
-	for k, v := range info.Events {
-		key := fmt.Sprintf("%s%d", ContainerEventsPrefix, k)
-		n.Latest[key] = latest(v)
-	}
-
-	for k, v := range info.ProcessIDs {
-		key := fmt.Sprintf("%s%d", ContainerPIDsPrefix, k)
-		n.Latest[key] = latest(v)
-	}
-
 	for k, v := range info.Properties {
 		key := fmt.Sprintf("%s%s", ContainerPropertiesPrefix, k)
 		n.Latest[key] = latest(v)
-	}
-
-	for _, mapping := range info.MappedPorts {
-		key := fmt.Sprintf("%s%d", ContainerPortMapPrefix, mapping.HostPort)
-		n.Latest[key] = latest(fmt.Sprintf("%d", mapping.ContainerPort))
 	}
 
 	n.Sets = map[string][]string{
@@ -115,28 +95,37 @@ func (r *report) AddNode(c garden.Container) error {
 		NetworkTx:   metric(float64(metrics.NetworkStat.TxBytes)),
 	}
 
-	appName, found := r.lookupAppName(id)
+	var stepName string
+	concourseContainer, found := r.lookupConcourseContainer(id)
+
 	if !found {
-		appName = "not-found-in-report"
+		stepName = "not-found"
 	}
+
+	stepName = concourseContainer.StepName
 
 	containerName := id
-	if appName != id {
-		containerName = fmt.Sprintf("%s/%s", appName, id[:5])
+	if stepName != "not-found" {
+		containerName = fmt.Sprintf("%s/%s", stepName, id[:5])
 	}
 
+	n.Latest[fmt.Sprintf("%s%s", ContainerConcoursePrefix, "build number")] = latest(concourseContainer.BuildName)
+	n.Latest[fmt.Sprintf("%s%s", ContainerConcoursePrefix, "pipeline")] = latest(concourseContainer.PipelineName)
+	n.Latest[fmt.Sprintf("%s%s", ContainerConcoursePrefix, "job")] = latest(concourseContainer.JobName)
+	n.Latest[fmt.Sprintf("%s%s", ContainerConcoursePrefix, "type")] = latest(concourseContainer.Type)
+
 	n.Latest["docker_container_name"] = latest(containerName)
-	n.Latest["docker_image_id"] = latest(appName)
+	n.Latest["docker_image_id"] = latest(stepName)
 	n.Latest[ContainerAppGUID] = latest(id)
 
 	img := nodeSpec{
-		ID:       fmt.Sprintf("%s;<container_image>", appName),
+		ID:       fmt.Sprintf("%s;<container_image>", stepName),
 		Topology: "container_image",
 		Parents:  map[string][]string{"host": []string{host}},
 		Latest: map[string]latestSpec{
 			ContainerAppGUID:    latest(id),
-			"docker_image_id":   latest(appName),
-			"docker_image_name": latest(appName),
+			"docker_image_id":   latest(stepName),
+			"docker_image_name": latest(stepName),
 			"host_node_id":      latest(host),
 		},
 	}
@@ -269,12 +258,12 @@ type pluginSpec struct {
 }
 
 type report struct {
-	ID             string             `json:"ID"`
-	Plugins        []pluginSpec       `json:"Plugins"`
-	Container      containerSpec      `json:"Container"`
-	ContainerImage containerImageSpec `json:"ContainerImage"`
-	hostname       string
-	lookupAppName  lookupFn
+	ID                       string             `json:"ID"`
+	Plugins                  []pluginSpec       `json:"Plugins"`
+	Container                containerSpec      `json:"Container"`
+	ContainerImage           containerImageSpec `json:"ContainerImage"`
+	hostname                 string
+	lookupConcourseContainer lookupFn
 }
 
 var (
@@ -293,9 +282,6 @@ var (
 		ContainerIP:         {ID: ContainerIP, Label: "Container IP", From: "latest", Priority: 4},
 		ContainerHostIP:     {ID: ContainerHostIP, Label: "Host IP", From: "latest", Priority: 5},
 		ContainerExternalIP: {ID: ContainerExternalIP, Label: "External IP", From: "latest", Priority: 6},
-		// ContainerAppGUID:    {ID: ContainerAppGUID, Label: "CF App GUID", From: "latest", Priority: 7},
-		// ContainerOrgGUID:    {ID: ContainerOrgGUID, Label: "CF Org GUID", From: "latest", Priority: 8},
-		// ContainerSpaceGUID:  {ID: ContainerSpaceGUID, Label: "CF Space GUID", From: "latest", Priority: 9},
 	}
 
 	containerMetricTemplates = map[string]metricTemplateSpec{
@@ -307,20 +293,13 @@ var (
 	}
 
 	containerTableTemplates = map[string]tableTemplateSpec{
-		ContainerEventsPrefix:     {ID: ContainerEventsPrefix, Label: "Events", Prefix: ContainerEventsPrefix},
-		ContainerPIDsPrefix:       {ID: ContainerPIDsPrefix, Label: "Process IDs", Prefix: ContainerPIDsPrefix},
 		ContainerPropertiesPrefix: {ID: ContainerPropertiesPrefix, Label: "Properties", Prefix: ContainerPropertiesPrefix},
-		ContainerPortMapPrefix:    {ID: ContainerPortMapPrefix, Label: "Port Mapping", Prefix: ContainerPortMapPrefix},
-		ContainerCFPrefix:         {ID: ContainerCFPrefix, Label: "Cloud Foundry", Prefix: ContainerCFPrefix},
+		ContainerConcoursePrefix:  {ID: ContainerConcoursePrefix, Label: "Concourse", Prefix: ContainerConcoursePrefix},
 	}
 
 	containerImageTableTemplates = map[string]tableTemplateSpec{
-		ContainerCFPrefix: {ID: ContainerCFPrefix, Label: "Cloud Foundry", Prefix: ContainerCFPrefix},
+		ContainerConcoursePrefix: {ID: ContainerConcoursePrefix, Label: "Concourse", Prefix: ContainerConcoursePrefix},
 	}
 
-	containerImageMetadataTemplates = map[string]metadataTemplateSpec{
-		// ContainerAppGUID:   {ID: ContainerAppGUID, Label: "CF App GUID", Priority: 1, From: "latest"},
-		// ContainerOrgGUID:   {ID: ContainerOrgGUID, Label: "CF Org GUID", Priority: 2, From: "latest"},
-		// ContainerSpaceGUID: {ID: ContainerSpaceGUID, Label: "CF Space GUID", Priority: 3, From: "latest"},
-	}
+	containerImageMetadataTemplates = map[string]metadataTemplateSpec{}
 )

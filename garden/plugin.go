@@ -9,9 +9,10 @@ import (
 
 	gardenclient "code.cloudfoundry.org/garden/client"
 	gardenconnection "code.cloudfoundry.org/garden/client/connection"
+	"github.com/concourse/atc"
 )
 
-type lookupFn func(string) (string, bool)
+type lookupFn func(string) (atc.Container, bool)
 
 type plugin struct {
 	lock     sync.RWMutex

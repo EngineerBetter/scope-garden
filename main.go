@@ -102,7 +102,7 @@ func main() {
 		gardenNetwork,
 		gardenAddr,
 		gardenRefreshInterval,
-		appDir.AppName,
+		appDir.ConcourseContainer,
 	)
 	defer plugin.Close()
 
