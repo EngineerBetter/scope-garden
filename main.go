@@ -23,6 +23,9 @@ var (
 	gardenRefreshInterval time.Duration
 	pluginsRoot           string
 	hostname              string
+	atcUrl                string
+	atcUsername           string
+	atcPassword           string
 )
 
 func init() {
@@ -60,6 +63,27 @@ func init() {
 		getEnvString("HOSTNAME", ""),
 		"hostname as reported by scope [HOSTNAME]",
 	)
+
+	flag.StringVar(
+		&atcUrl,
+		"atc.url",
+		getEnvString("ATC_URL", ""),
+		"Protocol, hostname and port to access the ATC [ATC_URL]",
+	)
+
+	flag.StringVar(
+		&atcUsername,
+		"atc.username",
+		getEnvString("ATC_USERNAME", ""),
+		"User to access the ATC as [ATC_USERNAME]",
+	)
+
+	flag.StringVar(
+		&atcPassword,
+		"atc.password",
+		getEnvString("ATC_PASSWORD", ""),
+		"Password for the ATC user [ATC_PASSWORD]",
+	)
 }
 
 func main() {
@@ -89,7 +113,7 @@ func main() {
 
 	handleSignals()
 
-	client, err := conchhorse.NewClient("http://10.244.15.2:8080", "admin", "admin")
+	client, err := conchhorse.NewClient(atcUrl, atcUsername, atcPassword)
 	if err != nil {
 		log.Fatal(err)
 	}
