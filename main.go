@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/st3v/scope-garden/cf"
+	"github.com/st3v/scope-garden/conchhorse"
 	"github.com/st3v/scope-garden/garden"
 )
 
@@ -89,7 +89,12 @@ func main() {
 
 	handleSignals()
 
-	appDir := cf.NewAppDirectory()
+	client, err := conchhorse.NewClient("http://10.244.15.2:8080", "admin", "admin")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	appDir := conchhorse.NewAppDirectory(client, 3*time.Second)
 	defer appDir.Close()
 
 	plugin := garden.NewPlugin(
