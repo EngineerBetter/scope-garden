@@ -30,8 +30,6 @@ const (
 	CPUUsage    = "garden_cpu_total_usage"
 	NetworkRx   = "garden_network_rx"
 	NetworkTx   = "garden_network_tx"
-
-	ContainerAppGUID = "cf_app_guid"
 )
 
 func newReport(hostname string, appNameLookup lookupFn) report {
@@ -116,14 +114,12 @@ func (r *report) AddNode(c garden.Container) error {
 
 	n.Latest["docker_container_name"] = latest(containerName)
 	n.Latest["docker_image_id"] = latest(stepName)
-	n.Latest[ContainerAppGUID] = latest(id)
 
 	img := nodeSpec{
 		ID:       fmt.Sprintf("%s;<container_image>", stepName),
 		Topology: "container_image",
 		Parents:  map[string][]string{"host": []string{host}},
 		Latest: map[string]latestSpec{
-			ContainerAppGUID:    latest(id),
 			"docker_image_id":   latest(stepName),
 			"docker_image_name": latest(stepName),
 			"host_node_id":      latest(host),
