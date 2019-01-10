@@ -52,7 +52,6 @@ func (d *directory) set(containers []atc.Container) {
 	d.containers = map[string]atc.Container{}
 
 	for _, container := range containers {
-		log.Printf("found some containers: %+v\n", containers)
 		d.containers[container.ID] = container
 	}
 }
